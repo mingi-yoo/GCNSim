@@ -33,6 +33,7 @@ public:
 
 private:
 	int id;
+	int transfer_cnt;
 	uint64_t q_space;
 	uint64_t offset;
 	uint64_t req_address;

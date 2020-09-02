@@ -304,7 +304,6 @@ int main(int argc, char** argv) {
 				if (er[i]->CanVertexReceive() && !(vr[i]->flag.q_empty)) 
 					er[i]->ReceiveData(vr[i]->TransferData());
 				if (er[i]->IsEndRequest()) {
-					er[i]->pre_w_fold++;
 					er[i]->ResetRequestStat();
 				}
 				else if (er[i]->IsEndOperation()) 

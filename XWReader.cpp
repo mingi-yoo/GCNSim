@@ -64,7 +64,7 @@ ERData XWReader::Request() {
 	ERData ret = xwq.front();
 	xwq.pop();
 	req_cnt++;
-	if (xwq.empty() && !IsEndOperation())
+	if (xwq.empty())
 		flag.q_empty = true;
 
 	if (MECHA_TYPE == 1)
@@ -88,7 +88,7 @@ ERData XWReader::Request() {
 		if(limit_w_fold > w_fold)
 			limit_w_fold = w_fold;
 
-		if (pre_w_fold % UNIT_W_READ == 1) {
+		if (pre_w_fold % UNIT_W_READ == 1 || UNIT_W_READ == 1) {
 			count_reset = true;
 		}
 		else {
