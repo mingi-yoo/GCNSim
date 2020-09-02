@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <ctime>
+#include <cmath>
+#include <algorithm>
 #include "IniParser.h"
 #include "DataReader.h"
 #include "DRAMInterface.h"
@@ -31,8 +33,13 @@ extern uint64_t WEIGHT_START;
 extern uint64_t XW_START;
 extern uint64_t AXW_START;
 
+extern int SYSTOLIC_DIM;
+
 extern int MAX_DRAM;
 extern int MECHA_TYPE;
+extern int UNIT_W_READ;
+
+extern string MEM_TYPE;
 
 extern uint64_t w_h, w_w, x_h, x_w, a_w, a_h;
 
@@ -46,6 +53,8 @@ extern uint64_t a_util;
 extern uint64_t w_util;
 
 extern char *optarg;
+
+extern int tot_req;
 
 uint64_t cycle;
 
@@ -95,7 +104,7 @@ int main(int argc, char** argv) {
 	/* test code start */
 	ip = new IniParser(ini);
 	dr = new DataReader(data1, data2);
-	dram = new DRAMInterface("DRAMsim3/configs/DDR4_8Gb_x16_2666.ini", "DRAMsim3");
+	dram = new DRAMInterface(MEM_TYPE, "DRAMsim3");
 	dt = new Distributer(ip, dr);
 
 	axw_count = tot_axw_count;
@@ -140,14 +149,83 @@ int main(int argc, char** argv) {
 			ber[i] = new BasisEdgeReader(i, dt->a_col_offset[i], dt->adjcolindex[i].size(), dt->a_row_info[i], dram);
 		xwr[i] = new XWReader(i, dt->adjcolindex[i].size());
 	}
+	queue<uint64_t> empty;
+	dt->adjrowindex[0] = empty;
+	dt->adjcolindex[0] = empty;
 	// 요소생성 (end)
 
 	
 	cout<<"TEST"<<endl;
 
-	// xw op cycle 저장...
-	uint64_t xw_cycle = cycle;
+	//------------XW CYCLE CALCULATE-------------//
+	uint64_t xw_dram_cycle = 0;
+	uint64_t xw_acc_cycle = 0;
+	uint64_t xw_cycle = 0;
+	tot_req = ceil((float)tot_w/CACHE_LINE_COUNT);
+	uint64_t w_address = WEIGHT_START;
+	uint64_t tot_xb_size = ip->xbsize;
+	int n = ceil((float)w_h / SYSTOLIC_DIM);
+/*
+	// First. Weight Request to Weight Buffer
+	int cnt = tot_req;
 
+	for (int i = 0; i < cnt; i++) {
+		dram->DRAMRequest(w_address, READ);
+		dram->AddTransaction();
+		dram->UpdateCycle();
+		w_address += CACHE_LINE_BYTE;
+		xw_dram_cycle++;
+	}
+
+	while (tot_req != 0) {
+		dram->AddTransaction();
+		dram->UpdateCycle();
+		xw_dram_cycle++;
+	}
+
+	while (dram->WReadComplete())
+		dram->GetReadData(true);
+
+	// Second, X Matrix Request to X Buffer (N times)
+	tot_req = ceil((float)(x_h * x_w)/CACHE_LINE_COUNT);
+	cnt = tot_req;
+	uint64_t x_address = X_START;
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < cnt; j++) {
+			dram->DRAMRequest(x_address, READ);
+			dram->AddTransaction();
+			dram->UpdateCycle();
+			x_address += CACHE_LINE_BYTE;
+			xw_dram_cycle++;
+		}
+		x_address = X_START;
+	}
+
+	while (tot_req != 0) {
+		dram->AddTransaction();
+		dram->UpdateCycle();
+		xw_dram_cycle++;
+	}
+
+	while (dram->FReadComplete())
+		dram->GetReadData(false);
+
+	// Third, Calcutate Accelerator Operation Cycle
+	for (int i = 0; i < n * n; i++) {
+		// fill systolic array
+		xw_acc_cycle += SYSTOLIC_DIM;
+	}
+
+	int unit_x = ceil((float)x_w/SYSTOLIC_DIM);
+	for (int i = 0; i < n; i++) {
+		// pass x to systolic array
+		xw_acc_cycle += x_h * unit_x;
+	}
+
+	xw_cycle = max(xw_dram_cycle, xw_acc_cycle);
+	cout<<"XW END<<endl;
+	//---------------XW END--------------------//
+*/
 	// A * XW Simulation
 	for (int i = 0; i < ip->tot_acc; i++)
 		acc[i]->isA = true;
@@ -275,38 +353,49 @@ int main(int argc, char** argv) {
 			for (int i = 0; i <ip->tot_acc; i++) {
 				if (xwr[i]->IsEndRequest()) {
 					xwr[i]->ResetRequestStat();
-					xwr[i]->pre_w_fold++;
-					gb[i]->pre_w_fold++;	
+					gb[i]->w_fold_save = gb[i]->pre_w_fold + UNIT_W_READ;
+					gb[i]->pre_w_fold = gb[i]->w_fold_save;
+					gb[i]->pre_repeat++;
 				}
 				else if (xwr[i]->IsEndOperation()) {
 					xwr[i]->TurnOffFlag();
 				}
-				if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive)
-					gb[i]->ReceiveData(xwr[i]->Request());
+				if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive) {
+					ERData pass = xwr[i]->Request();
+					if (xwr[i]->count_up) {
+						xwr[i]->count_up = false;
+						gb[i]->pre_w_fold++;
+					}
+					else if (xwr[i]->count_reset) {
+						xwr[i]->count_reset = false;
+						gb[i]->pre_w_fold = gb[i]->w_fold_save;
+					}
+					gb[i]->ReceiveData(pass);
+				}
 				if (gb[i]->axwflag.can_transfer) {
 					gb[i]->TransferAData();
 					acc[i]->ReceiveData(xwr[i]->TransferData());
 				}
-				if (!(zero_row.empty()))
+				while (!(zero_row.empty()))
 					acc[i]->WriteZeroRow();
 			}
 		}
 		else if (MECHA_TYPE == 1) {
 			for (int i = 0; i < ip->tot_acc; i++) {
-				if (xwr[i]->count_up) {
-					xwr[i]->count_up = false;
-					xwr[i]->pre_w_fold++;
-					gb[i]->pre_w_fold++;
-				}
-				else if (xwr[i]->count_reset) {
-					xwr[i]->count_reset = false;
-					xwr[i]->pre_w_fold = 0;
-					gb[i]->pre_w_fold = 0;
-				}
 				if (xwr[i]->BasisEndOperation())
 					xwr[i]->TurnOffFlag();
-				if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive)
-					gb[i]->ReceiveData(xwr[i]->Request());
+				if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive) {
+					ERData pass = xwr[i]->Request();
+					if (xwr[i]->count_up) {
+						xwr[i]->count_up = false;
+						gb[i]->pre_w_fold++;
+					}
+					else if (xwr[i]->count_reset) {
+						xwr[i]->count_reset = false;
+						gb[i]->pre_w_fold = 0;
+					}
+					gb[i]->ReceiveData(pass);
+				}
 				if (gb[i]->axwflag.can_transfer) {
 					gb[i]->TransferAData();
 					acc[i]->ReceiveData(xwr[i]->BasisTransferData());
@@ -361,6 +450,9 @@ int main(int argc, char** argv) {
 		path = "results/output_"+to_string(idx)+".txt";
 	}
 	ofstream output(path);
+
+	// For dramsim print state
+	dram->PrintStats();
 
 	output<<"YOUR CONFIGS: "<<ini<<endl;
 	output<<"YOUR DATAFILE(XW): "<<data1<<endl;

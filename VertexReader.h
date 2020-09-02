@@ -35,7 +35,9 @@ private:
 	uint64_t q_space;
 	uint64_t offset;
 	uint64_t req_address;
-	uint64_t pre_row; // for row index check
+	int pre_row; // for row index check
+	int tot_repeat;
+	int pre_repeat;
 	RCNT req_stat;
 	RowInfo row_info;
 	DRAMInterface *dram;

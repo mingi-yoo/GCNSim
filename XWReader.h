@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <queue>
+#include <cmath>
 #include "Accelerator.h"
 #include "Common.h"
 
@@ -36,6 +37,8 @@ private:
 	uint64_t tot_req;
 	uint64_t req_cnt;
 	uint64_t q_space;
+	int tot_repeat;
+	int pre_repeat;
 	queue<ERData> xwq, xwq_archive;
 };
 

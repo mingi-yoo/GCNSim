@@ -35,6 +35,10 @@ EdgeReader::EdgeReader(int id,
 	req_stat.pre_read_cnt = 0;
 	req_stat.read_cnt_acm = 0;
 	pre_row = row_info.row_start - 1;
+	col_num_archive = 0;
+	can_receive = true;
+	tot_repeat = ceil((float)w_fold/UNIT_W_READ);
+	pre_repeat = 1;
 }
 
 EdgeReader::~EdgeReader() {}
@@ -44,41 +48,63 @@ EdgeReader::~EdgeReader() {}
 
 ERData EdgeReader::TransferData() {
 	ERData ret;
+	int limit_w_fold = pre_repeat * UNIT_W_READ + UNIT_W_READ;
+	int start_w_fold = pre_repeat * UNIT_W_READ;
 
-	remain_col_num--;
+	if (limit_w_fold > w_fold)
+		limit_w_fold = w_fold;
+
 	ret.rowindex = pre_row;
-	ret.colindex = eq.front();
-	eq.pop();
-	q_space--;
-
-	if (eq.empty())
-		flag.q_empty = true;
+	if (pre_w_fold % UNIT_W_READ == 0) {
+		ev.push_back(eq.front());
+		eq.pop();
+	}
+	ret.colindex = ev[col_num_archive - remain_col_num];
+	
 	if ((req_stat.pre_read_cnt < req_stat.tot_read_cnt) 
 		&& (MAX_QUEUE_SIZE - q_space > CACHE_LINE_COUNT))
 		flag.req_need = true;
 
-	if (remain_col_num == 0)
+	pre_w_fold++;
+
+	if (remain_col_num == 1) {
 		ret.is_end = true;
-	else
+		if (pre_w_fold == limit_w_fold) {
+			q_space -= ev.size();
+			ev.clear();
+			pre_w_fold = start_w_fold;
+			remain_col_num--;
+			if (!(pre_row == row_info.row_end))
+				can_receive = true;
+			else
+				flag.q_empty = true;
+		}
+	}
+	else {
+		if (pre_w_fold == limit_w_fold) {
+			pre_w_fold = start_w_fold;
+			remain_col_num--;
+		}	
 		ret.is_end = false;
+	}
+
+	if (pre_w_fold == 0 && eq.empty())
+		flag.q_empty = true;
+
 
 	return ret;
 }
 
 bool EdgeReader::IsEndRequest() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_w_fold < w_fold - 1) && (w_fold > 1);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat);
 }
 
 bool EdgeReader::IsEndOperation() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_w_fold == w_fold - 1);
-}
-
-bool EdgeReader::IsEndColomn() {
-	return (req_stat.read_cnt_acm == req_stat.tot_read_cnt) && flag.q_empty;
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat);
 }
 
 bool EdgeReader::CanVertexReceive() {
-	return (remain_col_num == 0);
+	return can_receive;
 }
 
 void EdgeReader::ReceiveData(queue<uint64_t> data) {
@@ -89,7 +115,6 @@ void EdgeReader::ReceiveData(queue<uint64_t> data) {
 		eq.push(data.front());
 		data.pop();
 	}
-	q_space += bound;
 	flag.q_empty = false;
 } 
 
@@ -102,15 +127,21 @@ void EdgeReader::ReceiveData(uint64_t vertex) {
 	cur_v = vertex;
 	remain_col_num = cur_v - prev_v;
 	pre_row++;
+	can_receive = false;
 	if (pre_row == row_info.row_end)
 		pre_row = row_info.row_start - 1;
-	if (remain_col_num == 0)
-		zero_row.push(pre_row);
+	if (remain_col_num == 0) {
+		for (int i = 0; i < UNIT_W_READ; i++)
+			zero_row.push(pre_row);
+		can_receive = true;
+	}
 }
 
 void EdgeReader::Request() {
+	q_space += CACHE_LINE_COUNT;
 	req_stat.pre_read_cnt++;
-	if (MAX_QUEUE_SIZE - q_space < CACHE_LINE_COUNT)
+	if ((MAX_QUEUE_SIZE - q_space < CACHE_LINE_COUNT) ||
+		(req_stat.pre_read_cnt == req_stat.tot_read_cnt))
 		flag.req_need = false;
 	dram->DRAMRequest(req_address, READ);
 	//cout<<"ER) REQUEST. ADDRESS: "<<hex<<req_address<<endl;
@@ -120,6 +151,7 @@ void EdgeReader::Request() {
 void EdgeReader::ResetRequestStat() {
 	req_stat.pre_read_cnt = 0;
 	req_address = A_COL_START + offset;
+	pre_repeat++;
 }
 
 void EdgeReader::TurnOffFlag() {

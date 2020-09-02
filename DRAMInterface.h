@@ -37,6 +37,7 @@ public:
 	bool IsExistTransaction();
 	int ReturnID(uint64_t address);
 	uint64_t GetReadData(bool isW); //get read address that read complete
+	void PrintStats();
 private:
 	dramsim3::MemorySystem **dram;
 	int dram_idx;

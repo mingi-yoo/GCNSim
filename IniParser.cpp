@@ -16,15 +16,25 @@ uint64_t WEIGHT_START;
 uint64_t XW_START;
 uint64_t AXW_START;
 
+int SYSTOLIC_DIM;
+
 int MAX_DRAM;
 // 교체 알고리즘 선정
 uint64_t CACHE_REPL_ALGO;
 
 int DIVISION_TYPE;
 int MECHA_TYPE;
+
+int UNIT_W_READ;
+
+string MEM_TYPE;
+
 // Bloom Filter
 uint64_t BLOOM_FILTER_NUM;
 uint64_t BF_LEN;
+uint64_t BF_OVERLAP;
+
+uint64_t CACHE_WAY_N;
 
 IniParser::IniParser(string path) { ReadIni(path); }
 
@@ -124,9 +134,14 @@ void IniParser::ParseIni()
 	WEIGHT_START = GetUint64("WeightStartAddress");
 	XW_START = GetUint64("XWResultStartAddress");
 	AXW_START = GetUint64("AXWResultStartAddress");
+	SYSTOLIC_DIM = GetInt("SystolicDimension");
 	CACHE_REPL_ALGO = GetUint64("CacheReplacementAlgo");
 	DIVISION_TYPE = GetInt("CSRDivisionType");
 	MECHA_TYPE = GetInt("MechanismType");
+	UNIT_W_READ = GetInt("UnitWeightReadBlock");
 	BLOOM_FILTER_NUM = GetUint64("BloomFilterNum");
 	BF_LEN = GetUint64("BloomFilterLength");
+	BF_OVERLAP = GetUint64("BloomFilterOverlap");
+	CACHE_WAY_N = GetUint64("CacheWayN");
+	MEM_TYPE = GetString("MemoryType");
 }

@@ -56,7 +56,7 @@ Distributer::Distributer(IniParser *ini, DataReader *data) {
 		a_row_offset[i] = 0x0010000000000000 * i;
 		axw_offset[i] = 0x0010000000000000 * i;
 	}
-	tot_axw_count = tot_xw_count;
+	tot_axw_count = x_h * w_fold;
 	Distribute();
 }
 
@@ -148,7 +148,9 @@ void Distributer::Distribute() {
 			axw_count[i] = adjrowindex[i].size()-1;
 		}
 	}
-	
+	queue<uint64_t> empty;
+	data->adjrowindex = empty;
+	data->adjcolindex = empty;
 }
 
 // for debugging
@@ -159,7 +161,7 @@ void Distributer::Print()  {
 		cout<<"X"<<endl;
 		
 		cout<<"AdjRow"<<endl;
-		cnt = adjrowindex[i].size();
+		uint64_t cnt = adjrowindex[i].size();
 		queue<uint64_t> tmp_adjrow = adjrowindex[i];
 		for (int j = 0; j < cnt; j++)
 		{

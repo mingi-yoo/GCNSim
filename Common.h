@@ -4,7 +4,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#define MAX_QUEUE_SIZE 4096
+#define MAX_QUEUE_SIZE 1000000
 #define READ false
 #define WRITE true
 

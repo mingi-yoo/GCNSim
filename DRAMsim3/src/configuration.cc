@@ -34,11 +34,11 @@ Address Config::AddressMapping(uint64_t hex_addr) const {
     hex_addr >>= shift_bits;
     int channel = (hex_addr >> ch_pos) & ch_mask;
     int rank = (hex_addr >> ra_pos) & ra_mask;
-    int bg = (hex_addr >> bg_pos) & bg_mask;
-    int ba = (hex_addr >> ba_pos) & ba_mask;
+    int bg = (hex_addr >> bg_pos) & bg_mask; // bank group
+    int ba = (hex_addr >> ba_pos) & ba_mask; // bank
     int ro = (hex_addr >> ro_pos) & ro_mask;
     int co = (hex_addr >> co_pos) & co_mask;
-    return Address(channel, rank, bg, ba, ro, co);
+    return Address(channel, rank, bg, ba, ro, co); // 설정!!!
 }
 
 void Config::CalculateSize() {

@@ -1,0 +1,9 @@
+YOUR CONFIGS: configs/BASE_512KB_16WAY_LRU.ini
+YOUR DATAFILE(XW): /nfs/home/seonbinara/dataset/GRIP_Youtube/xw_128_128_1157827.txt
+YOUR DATAFILE(A): /nfs/home/seonbinara/dataset/GRIP_Youtube/com-youtube.ungraph_sorted_csr.txt
+
+TOTAL CYCLE: 1433626649
+XW CYCLE: 0, AXW CYCLE: 1433626649
+DRAM UTIL(A): 518182
+DRAM UTIL(W): 45729600
+TOTAL RUNNING TIME: 839.791 second

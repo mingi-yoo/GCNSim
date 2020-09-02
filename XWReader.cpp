@@ -20,14 +20,22 @@ extern uint64_t w_h, w_w, x_h, x_w, a_w, a_h;
 
 extern uint64_t w_fold;
 
+extern int MECHA_TYPE;
+extern int UNIT_W_READ;
+
 XWReader::XWReader(int id, uint64_t a_col_size) : q_space(0), pre_w_fold(0), req_cnt(0) {
 	this->id = id;
 	this->a_col_size = a_col_size;
-	tot_req = a_col_size * w_fold;
+	if (MECHA_TYPE == 1)
+		tot_req = a_col_size * w_fold;
+	else if (MECHA_TYPE == 0)
+		tot_req = a_col_size * UNIT_W_READ;
 	flag.q_empty = true;
 	flag.can_receive = true;
 	count_up = false;
 	count_reset = false;
+	tot_repeat = ceil((float)w_fold/UNIT_W_READ);
+	pre_repeat = 1;
 }
 
 XWReader::~XWReader() {}
@@ -49,12 +57,6 @@ ERData XWReader::BasisTransferData() {
 	if (!IsEndOperation())
 		flag.can_receive = true;
 
-	if (ret.is_end == true) {
-		if (pre_w_fold == w_fold - 1)
-			count_reset = true;
-		if ((pre_w_fold < w_fold - 1) && (w_fold > 1))
-			count_up = true;
-	}
 	return ret;
 }
 
@@ -65,15 +67,46 @@ ERData XWReader::Request() {
 	if (xwq.empty() && !IsEndOperation())
 		flag.q_empty = true;
 
+	if (MECHA_TYPE == 1)
+	{
+		pre_w_fold++;
+
+		if (pre_w_fold == 1)
+			count_reset = true;
+		else {
+			if (pre_w_fold == w_fold)
+				pre_w_fold = 0;
+			count_up = true;
+		}
+	}
+	else if (MECHA_TYPE == 0)
+	{
+		pre_w_fold++;
+		int limit_w_fold = pre_repeat * UNIT_W_READ + UNIT_W_READ;
+		int start_w_fold = pre_repeat * UNIT_W_READ;
+
+		if(limit_w_fold > w_fold)
+			limit_w_fold = w_fold;
+
+		if (pre_w_fold % UNIT_W_READ == 1) {
+			count_reset = true;
+		}
+		else {
+			if (pre_w_fold == limit_w_fold)
+				pre_w_fold = start_w_fold;
+			count_up = true;
+		}
+	}
+
 	return ret;
 }
 
 bool XWReader::IsEndRequest() {
-	return (req_cnt == a_col_size) && (w_fold > 1) && (pre_w_fold < w_fold-1);
+	return (req_cnt == tot_req) && (w_fold > 1) && (pre_repeat < tot_repeat);
 }
 
 bool XWReader::IsEndOperation() {
-	return (req_cnt == a_col_size) && (pre_w_fold == w_fold);
+	return (req_cnt == tot_req) && (pre_repeat == tot_repeat);
 }
 
 bool XWReader::BasisEndOperation() {
@@ -92,6 +125,11 @@ void XWReader::ReceiveData(ERData data) {
 
 void XWReader::ResetRequestStat() {
 	req_cnt = 0;
+	int remain_req = w_fold - (pre_repeat * UNIT_W_READ);
+	if (remain_req < UNIT_W_READ)
+		tot_req = remain_req;
+	pre_repeat++;
+	pre_w_fold = pre_repeat * UNIT_W_READ;
 }
 
 void XWReader::TurnOffFlag() {

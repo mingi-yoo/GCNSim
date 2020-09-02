@@ -30,7 +30,7 @@ struct AXWFlag {
 	bool can_transfer;
 	bool can_receive;
 	bool cache_full;
-	bool *requested; // it maybe changed
+	// bool *requested; // it maybe changed
 };
 
 class FIFO {
@@ -52,8 +52,8 @@ class LRU {
     int setN;
     public:
     LRU(int wayN, int setN);
-    void access(int setIdx, int data);
-    int replace(int setIdx);
+    void access(int setIdx, int data, int weightBlkIdx);
+    pair<int, int> replace(int setIdx);
 	void clear();
 };
 
@@ -62,14 +62,24 @@ class BloomFilter {
     private:
     int wayN;
     int setN;
+	// 각 블록 별로 몇 인덱스씩 가져야하는지
+	vector<int> blkIdxVector;
+	// Overlap 블록에 대해서도 계산
+	vector<int> ovlBlkIdxVector;
+	// Overlap Block StartIdx
+	int ovlStartIdx;
+	int curRowIdx;
     public:
     BloomFilter(int wayN, int setN);
-    int replace(int setIdx, int blkIdx, vector<int>* setVector);
+	int firstCycleAccess(uint64_t from, uint64_t to);
+    pair<int, int> replace(int setIdx, int blkIdx, bool useOvl, vector<int>* setVector, vector<int>* weightVector);
 };
 
 class GlobalBuffer {
 public:
 	int pre_w_fold;
+	int w_fold_save;
+	int pre_repeat;
 	XWFlag xwflag;
 	AXWFlag axwflag;
 	GlobalBuffer(int id,
@@ -95,6 +105,7 @@ private:
 	DRAMInterface *dram;
 	/* temporary (may be changed)*/
 	map<uint64_t, uint64_t> addr_col_table;
+	map<uint64_t, uint64_t> addr_row_table;
 	vector<uint64_t> w_data;
 	int blockN;
 	int setN;

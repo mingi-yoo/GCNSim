@@ -1,0 +1,9 @@
+YOUR CONFIGS: configs/FP_512KB_16WAY_BF.ini
+YOUR DATAFILE(XW): /nfs/home/seonbinara/dataset/GRIP_Youtube/xw_128_128_1157827.txt
+YOUR DATAFILE(A): /nfs/home/seonbinara/dataset/GRIP_Youtube/com-youtube.ungraph_sorted_csr.txt
+
+TOTAL CYCLE: 2101763946
+XW CYCLE: 0, AXW CYCLE: 2101763946
+DRAM UTIL(A): 8290912
+DRAM UTIL(W): 36820358
+TOTAL RUNNING TIME: 1280.67 second

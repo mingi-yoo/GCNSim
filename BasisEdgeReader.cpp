@@ -36,6 +36,7 @@ BasisEdgeReader::BasisEdgeReader(int id,
 	req_stat.read_cnt_acm = 0;
 	pre_row = row_info.row_start - 1;
 	col_num_archive = 0;
+	can_receive = true;
 }
 
 BasisEdgeReader::~BasisEdgeReader() {}
@@ -49,36 +50,43 @@ ERData BasisEdgeReader::TransferData() {
 		eq.pop();
 	}
 	ret.colindex = ev[col_num_archive - remain_col_num];
-	remain_col_num--;
-
-	if ((pre_w_fold == w_fold - 1) && eq.empty() && remain_col_num == 0)
-		flag.q_empty = true;
-	if (pre_w_fold == 0 && eq.empty() && remain_col_num != 0)
-		flag.q_empty = true;
+	
 	if ((req_stat.pre_read_cnt < req_stat.tot_read_cnt) 
 		&& (MAX_QUEUE_SIZE - q_space > CACHE_LINE_COUNT))
 		flag.req_need = true;
 
-	if (remain_col_num == 0) {
+	pre_w_fold++;
+
+	if (remain_col_num == 1) {
 		ret.is_end = true;
-		if (pre_w_fold == w_fold - 1 && !IsEndOperation()) {
+		if (pre_w_fold == w_fold) {
 			q_space -= ev.size();
 			ev.clear();
 			pre_w_fold = 0;
-		}
-		else {
-			remain_col_num = col_num_archive;
-			pre_w_fold++;
+			remain_col_num--;
+			if (!(pre_row == row_info.row_end))
+				can_receive = true;
+			else
+				flag.q_empty = true;
 		}
 	}
-	else
+	else {
+		if (pre_w_fold == w_fold) {
+			pre_w_fold = 0;
+			remain_col_num--;
+		}	
 		ret.is_end = false;
+	}
+
+	if (pre_w_fold == 0 && eq.empty())
+		flag.q_empty = true;
+
 
 	return ret;
 }
 
 bool BasisEdgeReader::IsEndOperation() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_w_fold == w_fold - 1);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt);
 }
 
 bool BasisEdgeReader::IsEndColomn() {
@@ -86,7 +94,7 @@ bool BasisEdgeReader::IsEndColomn() {
 }
 
 bool BasisEdgeReader::CanVertexReceive() {
-	return (remain_col_num == 0);
+	return can_receive;
 }
 
 void BasisEdgeReader::ReceiveData(queue<uint64_t> data) {
@@ -96,7 +104,6 @@ void BasisEdgeReader::ReceiveData(queue<uint64_t> data) {
 		eq.push(data.front());
 		data.pop();
 	}
-	q_space += bound;
 	flag.q_empty = false;
 }
 
@@ -106,15 +113,19 @@ void BasisEdgeReader::ReceiveData(uint64_t vertex) {
 	remain_col_num = cur_v - prev_v;
 	col_num_archive = remain_col_num;
 	pre_row++;
+	can_receive = false;
 	if (remain_col_num == 0) {
 		for (int i = 0; i < w_fold; i++)
 			zero_row.push(pre_row);
+		can_receive = true;
 	}
 }
 
 void BasisEdgeReader::Request() {
+	q_space += CACHE_LINE_COUNT;
 	req_stat.pre_read_cnt++;
-	if (MAX_QUEUE_SIZE - q_space < CACHE_LINE_COUNT)
+	if ((MAX_QUEUE_SIZE - q_space < CACHE_LINE_COUNT) ||
+		(req_stat.pre_read_cnt == req_stat.tot_read_cnt))
 		flag.req_need = false;
 	dram->DRAMRequest(req_address, READ);
 	req_address += CACHE_LINE_BYTE;

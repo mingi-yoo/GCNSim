@@ -21,6 +21,7 @@ extern uint64_t AXW_START;
 extern uint64_t w_h, w_w, x_h, x_w, a_w, a_h;
 
 extern int w_fold;
+extern int UNIT_W_READ;
 
 VertexReader::VertexReader(int id, 
 						   uint64_t offset,
@@ -38,6 +39,8 @@ VertexReader::VertexReader(int id,
 	req_stat.pre_read_cnt = 0;
 	req_stat.read_cnt_acm = 0;
 	pre_row = row_info.row_start;
+	tot_repeat = ceil((float)w_fold/UNIT_W_READ); 
+	pre_repeat = 1;
 }
 
 VertexReader::~VertexReader() {}
@@ -62,11 +65,11 @@ uint64_t VertexReader::TransferData() {
 }
 
 bool VertexReader::IsEndRequest() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_w_fold < w_fold - 1) && (w_fold > 1);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat);
 }
 
 bool VertexReader::IsEndOperation() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_w_fold == w_fold - 1);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat);
 }
 
 bool VertexReader::BasisEndOperation() {
@@ -83,11 +86,11 @@ void VertexReader::ReceiveData(queue<uint64_t> data) {
 		vq.push(data.front());
 		data.pop();
 	}
-	q_space += bound;
 	flag.q_empty = false;
 } 
 
 void VertexReader::Request() {
+	q_space += CACHE_LINE_COUNT;
 	req_stat.pre_read_cnt++;
 	if (MAX_QUEUE_SIZE - q_space < CACHE_LINE_COUNT
 		|| req_stat.pre_read_cnt == req_stat.tot_read_cnt)
@@ -102,6 +105,7 @@ void VertexReader::ResetRequestStat() {
 	req_stat.read_cnt_acm = 0;
 	pre_row = row_info.row_start;
 	req_address = A_ROW_START + offset;
+	pre_repeat++;
 }
 
 void VertexReader::TurnOffFlag() {

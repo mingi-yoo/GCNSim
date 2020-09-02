@@ -13,6 +13,7 @@ using namespace std;
 class BasisEdgeReader {
 public:
 	int pre_w_fold;
+	bool can_receive;
 	ReaderFlag flag;
 	BasisEdgeReader(int id, 
 			   uint64_t offset,
@@ -33,7 +34,7 @@ private:
 	int q_space;
 	uint64_t offset;
 	uint64_t req_address;
-	uint64_t pre_row;
+	int pre_row;
 	// for index check
 	uint64_t cur_v; // remain number of column check
 	uint64_t prev_v;

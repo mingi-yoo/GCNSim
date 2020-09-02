@@ -138,6 +138,12 @@ uint64_t DRAMInterface::GetReadData(bool isW) {
 	return ret;
 }
 
+void DRAMInterface::PrintStats() {
+	for(int i = 0; i < MAX_DRAM; i++) {
+		dram[i] -> PrintStats();
+	}
+}
+
 // 방법을 바꿀 필요 있어보임.....
 void DRAMInterface::ReadCompleteCallback(uint64_t address) {
 	if (address < WEIGHT_START) {
@@ -148,9 +154,9 @@ void DRAMInterface::ReadCompleteCallback(uint64_t address) {
 	else {
 		w_read_complete = true;
 		w_address.push(address);
-		tot_req--;
 		w_util++;
 	}
+	tot_req--;
 	//cout<<"Read Complete. Address: "<<hex<<address;
 	//cout<<", Cycle: "<<dec<<cycle<<endl;
 }
