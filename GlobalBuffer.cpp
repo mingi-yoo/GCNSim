@@ -564,7 +564,7 @@ void GlobalBuffer::Request(ERData data) {
 	if (MECHA_TYPE == 1) 
 		address = XW_START + (data.colindex * w_fold + pre_w_fold) * CACHE_LINE_BYTE;
 	else if (MECHA_TYPE == 0) // new
-		address = XW_START + (x_h*pre_repeat*UNIT_W_READ + data.colindex*UNIT_W_READ + (pre_W_fold - w_fold_save))*CACHE_LINE_BYTE;
+		address = XW_START + (x_h*pre_repeat*UNIT_W_READ + data.colindex*UNIT_W_READ + (pre_w_fold - w_fold_save))*CACHE_LINE_BYTE;
 
 	addr_col_table[address] = data.colindex;
 	addr_row_table[address] = data.rowindex;

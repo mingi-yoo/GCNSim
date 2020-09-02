@@ -17,6 +17,8 @@ extern uint64_t w_h, w_w, x_h, x_w, a_w, a_h;
 
 extern uint64_t w_fold;
 
+extern int UNIT_W_READ;
+
 queue<uint64_t> zero_row;
 
 EdgeReader::EdgeReader(int id, 
@@ -38,7 +40,7 @@ EdgeReader::EdgeReader(int id,
 	col_num_archive = 0;
 	can_receive = true;
 	tot_repeat = ceil((float)w_fold/UNIT_W_READ);
-	pre_repeat = 1;
+	pre_repeat = 0;
 }
 
 EdgeReader::~EdgeReader() {}
@@ -96,11 +98,11 @@ ERData EdgeReader::TransferData() {
 }
 
 bool EdgeReader::IsEndRequest() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat - 1);
 }
 
 bool EdgeReader::IsEndOperation() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat - 1);
 }
 
 bool EdgeReader::CanVertexReceive() {
@@ -126,6 +128,7 @@ void EdgeReader::ReceiveData(uint64_t vertex) {
 		prev_v = cur_v;
 	cur_v = vertex;
 	remain_col_num = cur_v - prev_v;
+	col_num_archive = remain_col_num;
 	pre_row++;
 	can_receive = false;
 	if (pre_row == row_info.row_end)

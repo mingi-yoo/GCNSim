@@ -40,7 +40,7 @@ VertexReader::VertexReader(int id,
 	req_stat.read_cnt_acm = 0;
 	pre_row = row_info.row_start;
 	tot_repeat = ceil((float)w_fold/UNIT_W_READ); 
-	pre_repeat = 1;
+	pre_repeat = 0;
 }
 
 VertexReader::~VertexReader() {}
@@ -65,11 +65,11 @@ uint64_t VertexReader::TransferData() {
 }
 
 bool VertexReader::IsEndRequest() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat - 1);
 }
 
 bool VertexReader::IsEndOperation() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat - 1);
 }
 
 bool VertexReader::BasisEndOperation() {

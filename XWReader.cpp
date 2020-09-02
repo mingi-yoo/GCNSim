@@ -35,7 +35,7 @@ XWReader::XWReader(int id, uint64_t a_col_size) : q_space(0), pre_w_fold(0), req
 	count_up = false;
 	count_reset = false;
 	tot_repeat = ceil((float)w_fold/UNIT_W_READ);
-	pre_repeat = 1;
+	pre_repeat = 0;
 }
 
 XWReader::~XWReader() {}
@@ -102,11 +102,11 @@ ERData XWReader::Request() {
 }
 
 bool XWReader::IsEndRequest() {
-	return (req_cnt == tot_req) && (w_fold > 1) && (pre_repeat < tot_repeat);
+	return (req_cnt == tot_req) && (w_fold > 1) && (pre_repeat < tot_repeat - 1);
 }
 
 bool XWReader::IsEndOperation() {
-	return (req_cnt == tot_req) && (pre_repeat == tot_repeat);
+	return (req_cnt == tot_req) && (pre_repeat == tot_repeat - 1);
 }
 
 bool XWReader::BasisEndOperation() {
