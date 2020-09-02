@@ -30,6 +30,7 @@ EdgeReader::EdgeReader(int id,
 	this->offset = offset;
 	this->row_info = row_info;
 	this->dram = dram;
+	this->a_col_size = a_col_size;
 	req_address = A_COL_START + offset;
 	flag.req_need = true;
 	flag.q_empty = true;
@@ -41,7 +42,9 @@ EdgeReader::EdgeReader(int id,
 	can_receive = true;
 	transfer_cnt = 0;
 	tot_repeat = ceil((float)w_fold/UNIT_W_READ);
+	tot_req_repeat = tot_repeat;
 	pre_repeat = 0;
+	pre_req_repeat = 0;
 }
 
 EdgeReader::~EdgeReader() {}
@@ -54,7 +57,7 @@ ERData EdgeReader::TransferData() {
 	int limit_w_fold = pre_repeat * UNIT_W_READ + UNIT_W_READ;
 	int start_w_fold = pre_repeat * UNIT_W_READ;
 
-	tansfer_cnt++;
+	transfer_cnt++;
 
 	if (limit_w_fold > w_fold)
 		limit_w_fold = w_fold;
@@ -96,7 +99,7 @@ ERData EdgeReader::TransferData() {
 	if (pre_w_fold == 0 && eq.empty())
 		flag.q_empty = true;
 
-	if (transfer_cnt == a_col_size) {
+	if (transfer_cnt == a_col_size * UNIT_W_READ) {
 		pre_repeat++;
 		pre_w_fold = pre_repeat * UNIT_W_READ;
 		transfer_cnt = 0;
@@ -106,11 +109,11 @@ ERData EdgeReader::TransferData() {
 }
 
 bool EdgeReader::IsEndRequest() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat < tot_repeat - 1);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_req_repeat < tot_req_repeat - 1);
 }
 
 bool EdgeReader::IsEndOperation() {
-	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_repeat == tot_repeat - 1);
+	return (req_stat.pre_read_cnt == req_stat.tot_read_cnt) && (pre_req_repeat == tot_req_repeat - 1);
 }
 
 bool EdgeReader::CanVertexReceive() {
@@ -162,6 +165,7 @@ void EdgeReader::Request() {
 void EdgeReader::ResetRequestStat() {
 	req_stat.pre_read_cnt = 0;
 	req_address = A_COL_START + offset;
+	pre_req_repeat++;
 }
 
 void EdgeReader::TurnOffFlag() {

@@ -34,12 +34,13 @@ public:
 private:
 	int id;
 	int transfer_cnt;
+	uint64_t a_col_size;
 	uint64_t q_space;
 	uint64_t offset;
 	uint64_t req_address;
 	int pre_row;
-	int tot_repeat;
-	int pre_repeat;
+	int tot_repeat, tot_req_repeat;
+	int pre_repeat, pre_req_repeat;
 	// for index check
 	uint64_t cur_v; // remain number of column check
 	uint64_t prev_v;
