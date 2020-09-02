@@ -352,7 +352,7 @@ int main(int argc, char** argv) {
 			for (int i = 0; i <ip->tot_acc; i++) {
 				if (xwr[i]->IsEndRequest()) {
 					xwr[i]->ResetRequestStat();
-					gb[i]->w_fold_save = gb[i]->pre_w_fold + UNIT_W_READ;
+					gb[i]->w_fold_save = gb[i]->w_fold_save + UNIT_W_READ;
 					gb[i]->pre_w_fold = gb[i]->w_fold_save;
 					gb[i]->pre_repeat++;
 				}

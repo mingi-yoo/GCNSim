@@ -90,6 +90,8 @@ ERData XWReader::Request() {
 
 		if (pre_w_fold % UNIT_W_READ == 1 || UNIT_W_READ == 1) {
 			count_reset = true;
+			if (pre_w_fold == limit_w_fold)
+				pre_w_fold = start_w_fold;
 		}
 		else {
 			if (pre_w_fold == limit_w_fold)
