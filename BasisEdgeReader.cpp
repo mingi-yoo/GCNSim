@@ -54,7 +54,7 @@ ERData BasisEdgeReader::TransferData() {
 	ret.pre_w_fold = pre_w_fold;
 	ret.pre_w_fold_start = pre_w_fold_start;
 	ret.pre_repeat = 0;
-	ret.address = address = XW_START + (ret.colindex * w_fold + pre_w_fold) * CACHE_LINE_BYTE;
+	ret.address = XW_START + (ret.colindex * w_fold + pre_w_fold) * CACHE_LINE_BYTE;
 	
 	if ((req_stat.pre_read_cnt < req_stat.tot_read_cnt) 
 		&& (MAX_QUEUE_SIZE - q_space > CACHE_LINE_COUNT))

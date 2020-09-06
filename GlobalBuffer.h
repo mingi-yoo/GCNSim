@@ -120,7 +120,7 @@ private:
 	void Request(ERData data);
 	/*****************************/
 	// for mshr
-	queue<ERData> wq
+	queue<ERData> wq;
 	map<uint64_t, ERData> w_map;
 	map<uint64_t, bool> w_req_table;
 };

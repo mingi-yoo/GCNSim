@@ -281,7 +281,6 @@ GlobalBuffer::GlobalBuffer(int id,
 	} else {
 		cout << "[Warning] unknown algorithm selected!" << endl;
 	}
-	this->before_pre_w_fold = pre_w_fold;
 	// axwflag.requested = new bool[a_w];
 	// for (int i = 0; i < a_w; i++)
 	// 	axwflag.requested[i] = false;
@@ -341,7 +340,7 @@ void GlobalBuffer::ReceiveData(ERData data) {
 	/************MSHR EXTEND*************/
 	wq.push(data);
 	axwflag.q_empty = false;
-	if (wq.size == LIMIT_WQ_SIZE)
+	if (wq.size() == LIMIT_WQ_SIZE)
 		axwflag.can_receive = false;
 
 	//추가 해야할 부분!
@@ -431,7 +430,7 @@ void GlobalBuffer::ReceiveData(uint64_t address) {
 	uint64_t to = col;
 	uint64_t setIdx = col%setN; // 몇번째 set에 해당하는지 결정
 	bool hasExist = false; // 빈 공간이나 이미 정보가 있었는지에 대한 flag
-	int pre_w_fold = w_map.pre_w_fold;
+	int pre_w_fold = w_map[address].pre_w_fold;
 	// 주의!!! 이미 캐시 위에는 없었기 때문에 들어오는 함수임!!!!!
 	// 빈공간이 있다면 채우기
 
@@ -536,7 +535,7 @@ void GlobalBuffer::ReceiveData(uint64_t address) {
 		}
 	}
 	w_req_table[address] = false;
-	if (w_map[address] == wq.front())
+	if (address == (wq.front()).address)
 		axwflag.can_transfer = true; 
 
 	/*********************/
