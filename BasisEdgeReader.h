@@ -32,6 +32,7 @@ public:
 private:
 	int id;
 	int q_space;
+	int pre_w_fold_start;
 	uint64_t offset;
 	uint64_t req_address;
 	int pre_row;

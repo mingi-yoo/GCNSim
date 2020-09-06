@@ -37,6 +37,7 @@ BasisEdgeReader::BasisEdgeReader(int id,
 	pre_row = row_info.row_start - 1;
 	col_num_archive = 0;
 	can_receive = true;
+	pre_w_fold_start = 0;
 }
 
 BasisEdgeReader::~BasisEdgeReader() {}
@@ -50,6 +51,10 @@ ERData BasisEdgeReader::TransferData() {
 		eq.pop();
 	}
 	ret.colindex = ev[col_num_archive - remain_col_num];
+	ret.pre_w_fold = pre_w_fold;
+	ret.pre_w_fold_start = pre_w_fold_start;
+	ret.pre_repeat = 0;
+	ret.address = address = XW_START + (ret.colindex * w_fold + pre_w_fold) * CACHE_LINE_BYTE;
 	
 	if ((req_stat.pre_read_cnt < req_stat.tot_read_cnt) 
 		&& (MAX_QUEUE_SIZE - q_space > CACHE_LINE_COUNT))

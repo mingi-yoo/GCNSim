@@ -1,15 +1,3 @@
-YOUR CONFIGS: configs/BASE_8MB_16WAY_LRU.ini
-YOUR DATAFILE(XW): /nfs/home/seonbinara/dataset/OGN_drugdrug/xw_128_128_11354.txt
-YOUR DATAFILE(A): /nfs/home/seonbinara/dataset/OGN_drugdrug/drug_drug_sorted_csr.txt
-
-TOTAL CYCLE: 3621741
-XW CYCLE: 0, AXW CYCLE: 3621741
-DRAM UTIL(A): 7485
-DRAM UTIL(W): 67136
-TOTAL RUNNING TIME: 3.15651 second
-
-!!!BELOW is DRAMSIM3 LOG!!!
-
 ###########################################
 ## Statistics of Channel 0
 ###########################################
@@ -88,4 +76,3 @@ average_power                  =      853.645   # Average power (mW)
 average_bandwidth              =      6.03844   # Average bandwidth
 average_interarrival           =      14.1317   # Average request interarrival latency (cycles)
 total_energy                   =  3.09168e+09   # Total energy (pJ)
-

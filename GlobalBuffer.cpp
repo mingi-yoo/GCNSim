@@ -239,7 +239,7 @@ pair<int, int> BloomFilter::replace(int setIdx, int blkIdx, bool useOvl, vector<
 GlobalBuffer::GlobalBuffer(int id,
 						   uint64_t gbsize, 
 						   uint64_t tot_w,
-						   DRAMInterface *dram) : c_space(0), pre_w_fold(0) {
+						   DRAMInterface *dram) : c_space(0) {
 	this->id = id;
 	this->gbsize = gbsize;
 	this->tot_w = tot_w;
@@ -335,6 +335,19 @@ void GlobalBuffer::ReceiveData(ERData data) {
 	/* new code.... */
 	uint64_t from = data.rowindex;
 	uint64_t to = data.colindex;
+	int pre_w_fold = data.pre_w_fold;
+
+	/************MSHR EXTEND*************/
+	wq.push(data);
+	if (wq.size == LIMIT_WQ_SIZE)
+		axwflag.can_receive = false;
+
+	//추가 해야할 부분!
+	/*
+	 1. weight count up
+	 2. weight count가 0일 경우 request
+	*/
+	/***********************************/
 
 	// cout << "from: " << from << ", to: " << to << " , fold: " << pre_w_fold << endl;
 
@@ -375,12 +388,12 @@ void GlobalBuffer::ReceiveData(ERData data) {
 		// cout << "MISS! SET#: " << setIdx << endl;
 		//cout<<"NO HIT! "<<dec<<data.colindex<<", Cycle: "<<cycle<<endl;
 		// axwflag.requested[to] = true;
-		Request(data);
+		if (w_req_table.find(data.address) == w_req_table.end() || 
+			w_req_table[data.address] == false)
+			Request(data);
 	} else { // 로드되어있다면!!!
 		axwflag.can_transfer = true;
 	}
-	axwflag.can_receive = false;
-	a_data = data;
 
 	/**********************/
 	// 이전 구현체임!
@@ -411,14 +424,21 @@ void GlobalBuffer::ReceiveData(uint64_t address) {
 	/*it maybe will be changed*/
 
 	/* new code .....*/
-	uint64_t col = addr_col_table[address];
-	uint64_t from = addr_row_table[address];
+	uint64_t col = w_map[address].colindex;
+	uint64_t from = w_map[address].rowindex;
 	uint64_t to = col;
 	uint64_t setIdx = col%setN; // 몇번째 set에 해당하는지 결정
 	bool hasExist = false; // 빈 공간이나 이미 정보가 있었는지에 대한 flag
-
+	int pre_w_fold = w_map.pre_w_fold;
 	// 주의!!! 이미 캐시 위에는 없었기 때문에 들어오는 함수임!!!!!
 	// 빈공간이 있다면 채우기
+
+	//추가 해야할 부분!
+	/*
+	 1. weight count down
+	*/
+	/***********************************/
+
 	for(int i = 0; i < wayN; i++) {
 		// 만약 캐시 해당 set에 빈 공간이 있다면
 		if(cache[setIdx][i] == -1) {
@@ -513,8 +533,9 @@ void GlobalBuffer::ReceiveData(uint64_t address) {
 			cout << "[Warning] unknown algorithm selected!" << endl;
 		}
 	}
-
-	axwflag.can_transfer = true; 
+	w_req_table[address] = false;
+	if (w_map[address] == wq.front())
+		axwflag.can_transfer = true; 
 
 	/*********************/
 	// 이전 코드 구현체
@@ -559,17 +580,37 @@ void GlobalBuffer::ReceiveData(uint64_t address) {
 // }
 
 void GlobalBuffer::Request(ERData data) {
-	uint64_t address;
+	uint64_t address = data.address;
 	// 기존 addressing scheme
-	if (MECHA_TYPE == 1) 
-		address = XW_START + (data.colindex * w_fold + pre_w_fold) * CACHE_LINE_BYTE;
-	else if (MECHA_TYPE == 0) // new
-		address = XW_START + (x_h*pre_repeat*UNIT_W_READ + data.colindex*UNIT_W_READ + (pre_w_fold - w_fold_save))*CACHE_LINE_BYTE;
-
-	addr_col_table[address] = data.colindex;
-	addr_row_table[address] = data.rowindex;
+	w_map[address] = data;
+	w_req_table[address] = true;
 	dram->DRAMRequest(address, READ, id); 
 	//cout<<"GB) WEIGHT REQUEST: "<<hex<<address<<endl;
+}
+
+void GlobalBuffer::CanTransfer() {
+	if (axwflag.q_empty)
+		axwflag.can_transfer = false;
+	else {
+		ERData data = wq.front();
+
+		uint64_t from = data.rowindex;
+		uint64_t to = data.colindex;
+		int pre_w_fold = data.pre_w_fold;
+		uint64_t setIdx = data.colindex%setN;
+
+		bool can_transfer = false;
+
+		for (int i = 0; i < wayN; i++) {
+			if(cache[setIdx][i] == to && weight_blk_idx[setIdx][i] == pre_w_fold)
+				can_transfer = true;
+		}
+		if (!can_transfer) {
+			if (!w_req_table[data.address])
+				Request(data);
+		}
+		axwflag.can_transfer = can_transfer;
+	}
 }
 
 XRData GlobalBuffer::TransferXData() {
@@ -581,8 +622,8 @@ XRData GlobalBuffer::TransferXData() {
 
 ERData GlobalBuffer::TransferAData() {
 	//cout<<"GB) WEIGHT READ COMPLETE"<<endl;
-	axwflag.can_transfer = false;
 	axwflag.can_receive = true;
-	ERData ret = a_data;
+	ERData ret = wq.front();
+	wq.pop();
 	return ret;
 }

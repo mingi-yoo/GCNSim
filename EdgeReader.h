@@ -34,6 +34,7 @@ public:
 private:
 	int id;
 	int transfer_cnt;
+	int pre_w_fold_start; // save start w_fold
 	uint64_t a_col_size;
 	uint64_t q_space;
 	uint64_t offset;

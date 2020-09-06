@@ -19,6 +19,8 @@
 #define OPTIMAL_ALGO 2
 #define BF_ALGO 3
 
+#define LIMIT_WQ_SIZE 32
+
 using namespace std;
 
 struct XWFlag {
@@ -77,7 +79,6 @@ class BloomFilter {
 
 class GlobalBuffer {
 public:
-	int pre_w_fold;
 	int w_fold_save;
 	int pre_repeat;
 	XWFlag xwflag;
@@ -92,6 +93,7 @@ public:
 	void ReceiveData(ERData data);
 	void ReceiveData(uint64_t address); // you can change
 	void CacheReplacement(); // you can change
+	void CanTransfer();
 	XRData TransferXData();
 	ERData TransferAData();
 private:
@@ -103,9 +105,6 @@ private:
 	XRData x_data;
 	ERData a_data;
 	DRAMInterface *dram;
-	/* temporary (may be changed)*/
-	map<uint64_t, uint64_t> addr_col_table;
-	map<uint64_t, uint64_t> addr_row_table;
 	vector<uint64_t> w_data;
 	int blockN;
 	int setN;
@@ -119,5 +118,9 @@ private:
 	int before_pre_w_fold;
 	void Request(ERData data);
 	/*****************************/
+	// for mshr
+	queue<ERData> wq
+	map<uint64_t, ERData> w_map;
+	map<uint64_t, bool> w_req_table;
 };
 #endif

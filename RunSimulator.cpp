@@ -348,62 +348,21 @@ int main(int argc, char** argv) {
 			}
 		}
 		//GlobalBuffer & XWReader Turn Start
-		if (MECHA_TYPE == 0) {
-			for (int i = 0; i <ip->tot_acc; i++) {
-				if (xwr[i]->IsEndRequest()) {
-					xwr[i]->ResetRequestStat();
-					gb[i]->w_fold_save = gb[i]->w_fold_save + UNIT_W_READ;
-					gb[i]->pre_w_fold = gb[i]->w_fold_save;
-					gb[i]->pre_repeat++;
-				}
-				else if (xwr[i]->IsEndOperation()) {
-					xwr[i]->TurnOffFlag();
-				}
-				if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive) {
-					ERData pass = xwr[i]->Request();
-					if (xwr[i]->count_up) {
-						xwr[i]->count_up = false;
-						gb[i]->pre_w_fold++;
-					}
-					else if (xwr[i]->count_reset) {
-						xwr[i]->count_reset = false;
-						gb[i]->pre_w_fold = gb[i]->w_fold_save;
-					}
-					gb[i]->ReceiveData(pass);
-				}
-				if (gb[i]->axwflag.can_transfer) {
-					gb[i]->TransferAData();
-					acc[i]->ReceiveData(xwr[i]->TransferData());
-				}
-				while (!(zero_row.empty()))
-					acc[i]->WriteZeroRow();
+		for (int i = 0; i < MAX_DRAM; i++) {
+			gb[i]->CanTransfer();
+			if (xwr[i]->IsEndOperation()) {
+				xwr[i]->TurnOffFlag();
 			}
-		}
-		else if (MECHA_TYPE == 1) {
-			for (int i = 0; i < ip->tot_acc; i++) {
-				if (xwr[i]->BasisEndOperation())
-					xwr[i]->TurnOffFlag();
-				if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive) {
-					ERData pass = xwr[i]->Request();
-					if (xwr[i]->count_up) {
-						xwr[i]->count_up = false;
-						gb[i]->pre_w_fold++;
-					}
-					else if (xwr[i]->count_reset) {
-						xwr[i]->count_reset = false;
-						gb[i]->pre_w_fold = 0;
-					}
-					gb[i]->ReceiveData(pass);
-				}
-				if (gb[i]->axwflag.can_transfer) {
-					gb[i]->TransferAData();
-					acc[i]->ReceiveData(xwr[i]->BasisTransferData());
-				}
-				while (!(zero_row.empty()))
-					acc[i]->WriteZeroRow();
+			if (!(xwr[i]->flag.q_empty) && gb[i]->axwflag.can_receive) {
+				gb[i]->ReceiveData(xwr[i]->Request());
 			}
+			if (gb[i]->axwflag.can_transfer) {
+				gb[i]->TransferAData();
+				acc[i]->ReceiveData(xwr[i]->TransferData());
+			}
+			while (!(zero_row.empty()))
+				acc[i]->WriteZeroRow();
 		}
-		
 		//GlobalBuffer & XWReader Turn End
 		//Accelerator Turn Start
 		for (int i = 0; i < ip->tot_acc; i++)
@@ -461,8 +420,23 @@ int main(int argc, char** argv) {
 	output<<"DRAM UTIL(A): "<<a_util<<endl;
 	output<<"DRAM UTIL(W): "<<w_util<<endl;
 	output<<"TOTAL RUNNING TIME: "<<running_time<<" second"<<endl;
+	output << endl;
+	output << "!!!BELOW is DRAMSIM3 LOG!!!" << endl;
+	output << endl;
+
+	string dramsimLog = "./DRAMsim3/dramsim3.txt";
+	ifstream readDramsimLog;
+	readDramsimLog.open(dramsimLog);
+	if(readDramsimLog.is_open()) {
+		while(!readDramsimLog.eof()) {
+			char arr[5000];
+			readDramsimLog.getline(arr, 5000);
+			output << arr << endl;
+		}
+	}
 
 	output.close();
+	readDramsimLog.close();
 	Deallocation();
 	/* test code end */
 

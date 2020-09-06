@@ -46,6 +46,10 @@ struct ReaderFlag {
 struct ERData {
 	uint64_t rowindex;
 	uint64_t colindex;
+	uint64_t address;
+	int pre_w_fold;
+	int pre_w_fold_start;
+	int pre_repeat;
 	bool is_end;
 };
 

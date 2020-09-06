@@ -16,20 +16,13 @@ struct XWRFlag {
 
 class XWReader {
 public:
-	int pre_w_fold;
-	bool count_up;
-	bool count_reset;
 	XWRFlag flag;
 	XWReader(int id, uint64_t a_col_size);
 	~XWReader();
 	ERData TransferData();
-	ERData BasisTransferData();
 	ERData Request();
-	bool IsEndRequest();
 	bool IsEndOperation();
-	bool BasisEndOperation();
 	void ReceiveData(ERData data);
-	void ResetRequestStat();
 	void TurnOffFlag();
 private:
 	int id;
@@ -37,8 +30,6 @@ private:
 	uint64_t tot_req;
 	uint64_t req_cnt;
 	uint64_t q_space;
-	int tot_repeat;
-	int pre_repeat;
 	queue<ERData> xwq, xwq_archive;
 };
 

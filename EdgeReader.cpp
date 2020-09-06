@@ -45,6 +45,7 @@ EdgeReader::EdgeReader(int id,
 	tot_req_repeat = tot_repeat;
 	pre_repeat = 0;
 	pre_req_repeat = 0;
+	pre_w_fold_start = 0;
 }
 
 EdgeReader::~EdgeReader() {}
@@ -68,6 +69,10 @@ ERData EdgeReader::TransferData() {
 		eq.pop();
 	}
 	ret.colindex = ev[col_num_archive - remain_col_num];
+	ret.pre_w_fold = pre_w_fold;
+	ret.pre_w_fold_start = pre_w_fold_start;
+	ret.pre_repeat = pre_repeat;
+	ret.address = XW_START + (x_h*pre_repeat*UNIT_W_READ + ret.colindex*UNIT_W_READ + (pre_w_fold - pre_w_fold_start))*CACHE_LINE_BYTE;
 	
 	if ((req_stat.pre_read_cnt < req_stat.tot_read_cnt) 
 		&& (MAX_QUEUE_SIZE - q_space > CACHE_LINE_COUNT))
@@ -96,12 +101,13 @@ ERData EdgeReader::TransferData() {
 		ret.is_end = false;
 	}
 
-	if (pre_w_fold == 0 && eq.empty())
+	if (pre_w_fold == start_w_fold && eq.empty())
 		flag.q_empty = true;
 
 	if (transfer_cnt == a_col_size * UNIT_W_READ) {
 		pre_repeat++;
 		pre_w_fold = pre_repeat * UNIT_W_READ;
+		pre_w_fold_start = pre_w_fold;
 		transfer_cnt = 0;
 	}
 

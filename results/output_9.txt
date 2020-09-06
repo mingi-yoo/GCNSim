@@ -1,9 +1,0 @@
-YOUR CONFIGS: configs/FP_512KB_16WAY_BF.ini
-YOUR DATAFILE(XW): /nfs/home/seonbinara/dataset/OGN_drugdrug/xw_128_128_11354.txt
-YOUR DATAFILE(A): /nfs/home/seonbinara/dataset/OGN_drugdrug/drug_drug_sorted_csr.txt
-
-TOTAL CYCLE: 4653142
-XW CYCLE: 0, AXW CYCLE: 4653142
-DRAM UTIL(A): 119760
-DRAM UTIL(W): 37686
-TOTAL RUNNING TIME: 3.84044 second
