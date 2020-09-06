@@ -250,6 +250,7 @@ GlobalBuffer::GlobalBuffer(int id,
 	axwflag.can_transfer = false;
 	axwflag.can_receive = true;
 	axwflag.cache_full = false;
+	axwflag.q_empty = true;
 	w_fold_save = 0;
 	pre_repeat = 0;
 	
@@ -339,6 +340,7 @@ void GlobalBuffer::ReceiveData(ERData data) {
 
 	/************MSHR EXTEND*************/
 	wq.push(data);
+	axwflag.q_empty = false;
 	if (wq.size == LIMIT_WQ_SIZE)
 		axwflag.can_receive = false;
 
@@ -625,5 +627,7 @@ ERData GlobalBuffer::TransferAData() {
 	axwflag.can_receive = true;
 	ERData ret = wq.front();
 	wq.pop();
+	if (wq.size() == 0)
+		axwflag.q_empty = true;
 	return ret;
 }

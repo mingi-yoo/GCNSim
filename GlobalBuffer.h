@@ -32,6 +32,7 @@ struct AXWFlag {
 	bool can_transfer;
 	bool can_receive;
 	bool cache_full;
+	bool q_empty;
 	// bool *requested; // it maybe changed
 };
 
