@@ -57,6 +57,7 @@ extern char *optarg;
 extern int tot_req;
 
 uint64_t cycle;
+uint64_t tot_xw_count;
 
 IniParser *ip;
 DataReader *dr;
@@ -162,10 +163,15 @@ int main(int argc, char** argv) {
 	uint64_t xw_acc_cycle = 0;
 	uint64_t xw_cycle = 0;
 	tot_req = ceil((float)tot_w/CACHE_LINE_COUNT);
+	tot_xw_count = x_h * w_fold;
 	uint64_t w_address = WEIGHT_START;
+	uint64_t o_address = XW_START;
 	uint64_t tot_xb_size = ip->xbsize;
 	int n = ceil((float)w_h / SYSTOLIC_DIM);
-/*
+	int m = ceil((float)w_w / SYSTOLIC_DIM);
+	int repeat_block = ceil((float)(x_h * x_w * UNIT_BYTE) / tot_xb_size);
+	int unit_x_h = x_h / (tot_xb_size / (UNIT_BYTE * x_h));
+
 	// First. Weight Request to Weight Buffer
 	int cnt = tot_req;
 
@@ -186,19 +192,16 @@ int main(int argc, char** argv) {
 	while (dram->WReadComplete())
 		dram->GetReadData(true);
 
-	// Second, X Matrix Request to X Buffer (N times)
+	// Second, X Matrix Request to X Buffer
 	tot_req = ceil((float)(x_h * x_w)/CACHE_LINE_COUNT);
 	cnt = tot_req;
 	uint64_t x_address = X_START;
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < cnt; j++) {
-			dram->DRAMRequest(x_address, READ);
-			dram->AddTransaction();
-			dram->UpdateCycle();
-			x_address += CACHE_LINE_BYTE;
-			xw_dram_cycle++;
-		}
-		x_address = X_START;
+	for (int i = 0; i < cnt; i++) {
+		dram->DRAMRequest(x_address, READ);
+		dram->AddTransaction();
+		dram->UpdateCycle();
+		x_address += CACHE_LINE_BYTE;
+		xw_dram_cycle++;
 	}
 
 	while (tot_req != 0) {
@@ -211,21 +214,44 @@ int main(int argc, char** argv) {
 		dram->GetReadData(false);
 
 	// Third, Calcutate Accelerator Operation Cycle
-	for (int i = 0; i < n * n; i++) {
-		// fill systolic array
-		xw_acc_cycle += SYSTOLIC_DIM;
+	for (int i  = 0; i < repeat_block; i++) {
+		for (int j = 0; j < n * m; j++) {
+			// fill systolic array
+			xw_acc_cycle += SYSTOLIC_DIM;
+		}
+	}
+	
+	int unit_x = ceil((float)x_w/SYSTOLIC_DIM);
+	int remain_x_h = x_h;
+	for (int i = 0; i < repeat_block; i++) {
+		for (int j = 0; j < n; i++) {
+			// pass x to systolic array
+			xw_acc_cycle += unit_x_h * unit_x + SYSTOLIC_DIM;
+		}
+		remain_x_h -= unit_x_h;
+		if (remain_x_h < unit_x_h)
+			unit_x_h = remain_x_h;
 	}
 
-	int unit_x = ceil((float)x_w/SYSTOLIC_DIM);
-	for (int i = 0; i < n; i++) {
-		// pass x to systolic array
-		xw_acc_cycle += x_h * unit_x;
+	// Fourth, Write Result To Storage
+	for (int i = 0; i < x_h * w_fold; i++) {
+		dram->DRAMRequest(o_address, WRITE);
+		dram->AddTransaction();
+		dram->UpdateCycle();
+		o_address += CACHE_LINE_BYTE;
+		xw_dram_cycle++;
+	}
+
+	while (tot_xw_count != 0) {
+		dram->AddTransaction();
+		dram->UpdateCycle();
+		xw_dram_cycle++;
 	}
 
 	xw_cycle = max(xw_dram_cycle, xw_acc_cycle);
-	cout<<"XW END<<endl;
+	cout<<"XW END"<<endl;
 	//---------------XW END--------------------//
-*/
+/*
 	// A * XW Simulation
 	for (int i = 0; i < ip->tot_acc; i++)
 		acc[i]->isA = true;
@@ -384,11 +410,11 @@ int main(int argc, char** argv) {
 			break;
 		}
 	}
-
+*/
 	clock_t end_t = clock(); 
 	double running_time = (double)(end_t - start_t) / CLOCKS_PER_SEC;
 
-	uint64_t axw_cycle = cycle - xw_cycle;
+	uint64_t axw_cycle = 0;
 	cout<<"TOTAL CYCLE: "<<cycle<<endl;
 	cout <<"XW CYCLE: " << xw_cycle << ", AXW CYCLE: " << axw_cycle << endl;
 	cout<<"DRAM UTIL(A): "<<a_util<<endl;

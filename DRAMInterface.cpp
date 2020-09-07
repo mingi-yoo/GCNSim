@@ -21,6 +21,7 @@ extern int MAX_DRAM;
 extern uint64_t w_h, w_w, x_h, x_w, a_w, a_h;
 
 // defined in Distributer.cpp
+extern uint64_t tot_xw_count;
 extern uint64_t tot_axw_count;
 
 extern int tot_req;
@@ -164,6 +165,8 @@ void DRAMInterface::ReadCompleteCallback(uint64_t address) {
 void DRAMInterface::WriteCompleteCallback(uint64_t address) {
 	if (address >= AXW_START)
 		tot_axw_count--;
+	else
+		tot_xw_count--;
 	//cout<<"Write Complete. Address: "<<hex<<address;
 	//cout<<", Cycle: "<<dec<<cycle<<endl;
 }
